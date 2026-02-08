@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./chatbot.css";
 import { useAppState } from "./appState";
 import ReactMarkdown from 'react-markdown'
+import { Bot, MessageSquare, Plus, SendHorizontal, Loader2 } from "lucide-react"
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
@@ -271,59 +272,62 @@ export default function Chatbot() {
           <button
             className="new-chat-button"
             onClick={async () => {
-              const sessionId = await createBackendSession();
-              const newSession = {
+                const sessionId = await createBackendSession();
+                const newSession = {
                 id: sessionId,
                 title: "새로운 챗",
                 messages: [WELCOME_MESSAGE],
                 createdAt: new Date().toISOString(),
-              };
+                };
 
-              setState((prev) => ({
+                setState((prev) => ({
                 ...prev,
                 chat: {
-                  ...prev.chat,
-                  sessions: [newSession, ...prev.chat.sessions],
-                  currentSessionId: newSession.id,
+                    ...prev.chat,
+                    sessions: [newSession, ...prev.chat.sessions],
+                    currentSessionId: newSession.id,
                 },
-              }));
+                }));
 
-              localStorage.setItem(STORAGE_KEY_CURRENT, newSession.id);
+                localStorage.setItem(STORAGE_KEY_CURRENT, newSession.id);
             }}
-          >
-            <span className="plus-icon">+</span>
+            >
+            <span className="new-chat-icon" aria-hidden="true">
+                <Plus size={16} strokeWidth={2.5} />
+            </span>
             <span className="button-text">새로운 챗</span>
           </button>
         </div>
 
         <div className="chat-list">
-          {chat.sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`chat-item ${session.id === chat.currentSessionId ? "active" : ""}`}
-              onClick={() =>
-                setState((prev) => ({
-                  ...prev,
-                  chat: { ...prev.chat, currentSessionId: session.id },
-                }))
-              }
-            >
-              <div className="chat-icon">💬</div>
-              <span className="chat-title">{session.title}</span>
+            {chat.sessions.map((session) => (
+                <div
+                key={session.id}
+                className={`chat-item ${session.id === chat.currentSessionId ? "active" : ""}`}
+                onClick={() =>
+                    setState((prev) => ({
+                    ...prev,
+                    chat: { ...prev.chat, currentSessionId: session.id },
+                    }))
+                }
+                >
+                <div className="chat-icon" aria-hidden="true">
+                    <MessageSquare size={14} strokeWidth={2.2} />
+                </div>
+                <span className="chat-title">{session.title}</span>
 
-              {/* X 버튼 */}
-              <button
-                className="delete-button"
-                title="챗방 삭제"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteSession(session.id);
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
+                <button
+                    className="delete-button"
+                    title="챗방 삭제"
+                    onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSession(session.id);
+                    }}
+                >
+                    ×
+                </button>
+                </div>
+            ))}
         </div>
       </aside>
 
@@ -392,15 +396,9 @@ export default function Chatbot() {
 
                     <div className="stock-tooltip">
                         <div className="tooltip-title">추천 이유</div>
-                        <div className="tooltip-body">{x.why}</div>
-                        {x.risk && (
-                        <>
-                            <div className="tooltip-title" style={{ marginTop: 10 }}>
-                            리스크
-                            </div>
-                            <div className="tooltip-body">{x.risk}</div>
-                        </>
-                        )}
+                        <div className="tooltip-body tooltip-markdown">
+                            <ReactMarkdown>{(x.why ?? "").replace(/\n/g, "  \n")}</ReactMarkdown>
+                        </div>
                     </div>
                   </div>
 
@@ -417,9 +415,16 @@ export default function Chatbot() {
                     key={idx}
                     className={`message ${m.role === "user" ? "user-message" : "assistant-message"}`}
                   >
-                    <div className="message-avatar">{m.role === "user" ? "👤" : "🤖"}</div>
+                    {m.role === "assistant" && (
+                    <div className="message-avatar assistant-avatar" aria-hidden="true">
+                        <Bot />
+                    </div>
+                    )}
+
                     <div className="message-bubble">
-                      <div className="message-content"><ReactMarkdown>{m.content}</ReactMarkdown></div>
+                    <div className="message-content">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
                     </div>
                   </div>
                 ))}
@@ -445,15 +450,21 @@ export default function Chatbot() {
               className="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="궁금한 점을 물어보세요..."
+              placeholder="궁금한 점을 물어보세요!"
               disabled={loading || !currentSession}
             />
             <button
-              type="submit"
-              className="send-button"
-              disabled={loading || !input.trim() || !currentSession}
-            >
-              <span className="send-icon">↑</span>
+                type="submit"
+                className="send-button"
+                disabled={loading || !input.trim() || !currentSession}
+                aria-label={loading ? "전송 중" : "메시지 전송"}
+                title={loading ? "전송 중..." : "메시지 전송"}
+                >
+                {loading ? (
+                    <Loader2 size={18} className="send-spinner" />
+                ) : (
+                    <SendHorizontal size={18} />
+                )}
             </button>
           </form>
           <p className="input-disclaimer">
